@@ -1,6 +1,5 @@
 const axios = require("axios");
 const fs = require("fs");
-const data = require("./comics.json");
 
 const base_url = "https://gateway.marvel.com/v1/public";
 const apiKey = "0529e721762991c6ebcba10331a29947";
@@ -12,48 +11,41 @@ const limit = 5;
 const getComicsData = async () => {
   let auxData = [];
 
-  for (let i = 0; i < limit; i++) {
-    const result = await axios.get(
-      `${base_url}/creators?apikey=${apiKey}&ts=${ts}&hash=${hash}&limit=${perPage}&offset=${i}`
-    );
+  for (let first = 0; first < limit; first++) {
+    const url = `${base_url}/creators?apikey=${apiKey}&ts=${ts}&hash=${hash}&limit=${perPage}&offset=${first}`;
+    const firstRes = await axios.get(url);
 
-    const res = result?.data?.data?.results;
+    const firstResult = firstRes?.data?.data?.results;
 
-    let tempComics = [];
+    for (let second = 0; second < firstResult.length; second++) {
+      const authorFullname = firstResult[second].fullName;
+      const comics = firstResult[second].comics.items;
 
-    for (let x = 0; x < res.length; x++) {
-      const baseComics = res[x].comics.items;
-      for (let z = 0; z < baseComics.length; z++) {
-        console.log(`Comic ${i + z + x + 1}`);
-        const comicsssss = await axios.get(`${baseComics[z].resourceURI}?apikey=${apiKey}&ts=${ts}&hash=${hash}`);
-        const auxCommics = comicsssss.data.data.results;
+      for (let third = 0; third < comics.length; third++) {
+        const thirdRes = await axios.get(`${comics[third].resourceURI}?apikey=${apiKey}&ts=${ts}&hash=${hash}`);
+        const resultThird = thirdRes.data.data.results[0];
 
-        let auxx = [];
-
-        for (let asd = 0; asd < auxCommics.length; asd++) {
-          auxx = [
-            ...auxx,
-            {
-              title: auxCommics[asd].title,
-              description: auxCommics[asd].description || `${auxCommics[asd].title} description`,
-              pageCount: auxCommics[asd].pageCount,
-            },
-          ];
-        }
-        tempComics = [...tempComics, ...auxx];
+        auxData = [
+          ...auxData,
+          {
+            authorFullname,
+            nombreProducto: resultThird.title,
+            descripcionProducto: resultThird.description || `${resultThird.title} description`,
+            cantidadPaginas: resultThird.pageCount,
+            tipo: third % 2 ? "M" : third % 3 ? "F" : "",
+          },
+        ];
       }
     }
-
-    auxData = [...auxData, { fullName: res[i].fullName, comics: tempComics }];
-
-    console.log(`Vamos en el ${i + 1}`);
   }
+
+  console.log("here");
 
   fs.writeFile("comics.json", JSON.stringify(auxData), (err) => {
     if (err) console.error(err);
   });
 
-  console.log(`Previos: ${data.length} comics. Current set: ${auxData.length} commics`);
+  console.log(`${auxData.length} commics saved`);
 };
 
 getComicsData();
