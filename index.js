@@ -1,5 +1,7 @@
 const axios = require("axios");
 const fs = require("fs");
+const comicsData = require("./comics.json");
+const moment = require("moment");
 
 const base_url = "https://gateway.marvel.com/v1/public";
 const apiKey = "0529e721762991c6ebcba10331a29947";
@@ -13,6 +15,7 @@ const getComicsData = async () => {
 
   for (let first = 0; first < limit; first++) {
     const url = `${base_url}/creators?apikey=${apiKey}&ts=${ts}&hash=${hash}&limit=${perPage}&offset=${first}`;
+
     const firstRes = await axios.get(url);
 
     const firstResult = firstRes?.data?.data?.results;
@@ -32,14 +35,12 @@ const getComicsData = async () => {
             nombreProducto: resultThird.title,
             descripcionProducto: resultThird.description || `${resultThird.title} description`,
             cantidadPaginas: resultThird.pageCount,
-            tipo: third % 2 ? "M" : third % 3 ? "F" : "",
+            tipo: third % 2 ? "M" : third % 3 ? "F" : "S/R",
           },
         ];
       }
     }
   }
-
-  console.log("here");
 
   fs.writeFile("comics.json", JSON.stringify(auxData), (err) => {
     if (err) console.error(err);
@@ -48,4 +49,20 @@ const getComicsData = async () => {
   console.log(`${auxData.length} commics saved`);
 };
 
-getComicsData();
+const formatJsonExits = () => {
+  const formatted = comicsData.map((item, index) => ({
+    ...item,
+    tipoGenero: index % 2 ? "M" : index % 3 ? "F" : "S/R",
+    fechaLanzamiento: moment()
+      .subtract(index + 1, "month")
+      .toISOString(),
+    precio: Math.floor(Math.random() * (Math.floor(75000) - Math.ceil(30000)) + Math.ceil(30000)),
+  }));
+
+  fs.writeFile("comics.json", JSON.stringify(formatted), (err) => {
+    if (err) console.error(err);
+  });
+  console.log(`${formatted.length} commics saved`);
+};
+
+formatJsonExits();
